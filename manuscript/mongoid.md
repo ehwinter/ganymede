@@ -1,7 +1,7 @@
 Mongoid
 =======
 
-## Example
+## Class using Mongoid
 
 ```
 class User
@@ -18,14 +18,17 @@ class User
 end
 ```
 
-## Reading/Writing fields
+## Mogoid Attribute get/set
 
+### Read/Set an a Mongoid Field
 ```
 # Get the value of the first name field.
 person.first_name
 person[:first_name]
 person.read_attribute(:first_name)
 
+### Write/Set a Mongoid Field
+```
 # Set the value for the first name field.
 person.first_name = "Jean"
 person[:first_name] = "Jean"
@@ -40,7 +43,7 @@ person.write_attributes(
 ```
 
 
-## Relations
+## Relations: Embedding and Referencing Models
 
 ### Embedding data in the same table:
 
@@ -63,12 +66,14 @@ references_many :photos, :inverse_of => user
 In order to make sure data is actually to be written to disk, you need to tell mongoid
 
 ```
-.safely.save
+.safely.save # ensures an actual write
+.save  # queued for write
+.save! # queued for write, throws exception if validations fails
 ```
 
-(!Mongoid only fires the callback of the document that the persistence action was executed on)
+Mongoid only fires the callback of the document that the persistence action was executed on, not it's children
 
-### Queries
+## Queries
 
 ```
 .where(:amount.gt => 100, :active => true)
@@ -82,33 +87,9 @@ In order to make sure data is actually to be written to disk, you need to tell m
 .limit(20)
 .skip(100)
 ```
-
-### Logical or (or and) takes an array
-
-```
-.or({'away_team_id' => {'$in' => teams}}, {'home_team_id' => {'$in' => teams}}) 
-.or(center_referee_id: ref_id, fourth_referee_id: ref_id).size # fails. cant figure out {}
-.or({center_referee_id: ref_id}, {fourth_referee_id: ref_id}).size # 10 (array implied)
-.or([{center_referee_id: ref_id}, {fourth_referee_id: ref_id}]).size # 10, or takes an array
-```
-
-#### mongo style (safer)
-
-```
-.where('$or' => [{center_referee_id: ref_id}, {fourth_referee_id: ref_id}]) 
-.where({'$or' => [{center_referee_id: ref_id}, {fourth_referee_id: ref_id}]}) safer w/ {}
-```
-
-### Order
-
-```
-.desc(:last_name).asc(:first_name)
-.order_by(:last_name.desc, :first_name.asc, :city.desc)
-```
-
 ### Criterias
 
-note:   .where(age.gte: 18) rails 1.9 hash notation does NOT work when you have operator at end
+note:   .where(age.gte: 18) fails. Muse be :age.gte => 18 since gte operator is at end
 
 ```
 .where(:title.all => ["Sir"])
@@ -125,6 +106,33 @@ note:   .where(age.gte: 18) rails 1.9 hash notation does NOT work when you have 
 .where(:location.within => { "$center" => [ [ 50, -40 ], 1 ] })
 .where(name: /^Vancouver$/i)  # case insensitive search
 ```
+
+### Logical or/and Taking an Array
+
+```
+# MongoDB style: note 'away_team_id' is string not symbol
+.or({'away_team_id' => {'$in' => teams}}, {'home_team_id' => {'$in' => teams}}) 
+.or(center_referee_id: ref_id, fourth_referee_id: ref_id).size # fails. cant figure out {}
+# Arrays can be implied or explicit
+.or({center_referee_id: ref_id}, {fourth_referee_id: ref_id}).size # implied
+.or([{center_referee_id: ref_id}, {fourth_referee_id: ref_id}]).size # explicit
+```
+
+#### logical or mongo style (safer)
+
+```
+.where('$or' => [{center_referee_id: ref_id}, {fourth_referee_id: ref_id}]) 
+# wordier but safer:
+.where({'$or' => [{center_referee_id: ref_id}, {fourth_referee_id: ref_id}]}) 
+```
+
+### Order
+
+```
+.desc(:last_name).asc(:first_name)
+.order_by(:last_name.desc, :first_name.asc, :city.desc)
+```
+
 
 ### Calculations
 
@@ -147,7 +155,7 @@ db:setup
 db:test:prepare
 ```
 
-### Examples
+### Query Examples
 
 ```
 *date.class==Date
@@ -169,7 +177,7 @@ Match.or({'away_team_id' => {'$in' => teams}},
 givein the case where 
 
  * User.qualified is a Hash
- * qualified = {‘organization_id’ => {center_referee: true, assitant_referee: true}
+ * qualified = {‘organization_id’ => {center_referee: true, assitant_referee: true}}
 
 then:
 
